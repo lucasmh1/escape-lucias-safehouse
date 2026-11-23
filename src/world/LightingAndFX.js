@@ -15,16 +15,16 @@ export function buildLightingAndFX(scene, renderer, camera, layout) {
   // --- 1. Exponential Neon Night Fog ---
   scene.fog = new THREE.FogExp2(0x130824, 0.0105);
 
-  // --- 2. Base Ambient & Hemisphere Fill ---
-  const hemi = new THREE.HemisphereLight(0xb88cff, 0x261233, 0.72);
+  // --- 2. Base Ambient & Hemisphere Fill (balanced so dark corners stay readable without washing out light marble/sofas) ---
+  const hemi = new THREE.HemisphereLight(0xb896f0, 0x2c193d, 0.85);
   scene.add(hemi);
 
-  const ambient = new THREE.AmbientLight(0x3a2454, 0.45);
+  const ambient = new THREE.AmbientLight(0x3f2a5c, 0.52);
   scene.add(ambient);
 
-  // --- 3. Room-by-Room Neo-Noir Point & Spot Lights ---
-  function addPoint(color, intensity, distance, x, y, z, castShadow = false) {
-    const l = new THREE.PointLight(color, intensity, distance, 1.4);
+  // --- 3. Room-by-Room Neo-Noir Point Lights (calibrated to avoid bloom white-out on light surfaces) ---
+  function addPoint(color, intensity, distance, x, y, z, castShadow = false, decay = 1.65) {
+    const l = new THREE.PointLight(color, intensity, distance, decay);
     l.position.set(x, y, z);
     if (castShadow) {
       l.castShadow = true;
@@ -36,37 +36,43 @@ export function buildLightingAndFX(scene, renderer, camera, layout) {
   }
 
   // Living Room (Refs #1, #2, #4)
-  const livingMainLight = addPoint(0xd48cff, 2.2, 14, -3.8, 4.1, -1.8, true);
-  const crystalLampLight = addPoint(0xff3b9a, 1.6, 6.5, A.coffee_table.x - 0.2, 1.0, A.coffee_table.z - 0.1);
-  const amberOrbLight = addPoint(0xff9b3d, 1.5, 5.5, -8.2, 0.65, -4.4);
-  const candleLight = addPoint(0xffaa44, 1.1, 4.5, -8.1, 0.7, -6.4);
-  addPoint(0x00d9ff, 1.1, 9.0, -7.8, 2.4, -7.0); // Cool cyan city window bounce
-  addPoint(0xff2d95, 1.2, 7.0, A.spiral_stair.x, 2.2, A.spiral_stair.z); // Pink spiral stair glow
+  const livingMainLight = addPoint(0xd49eff, 7.5, 16, -3.8, 4.1, -1.8, true, 1.65);
+  addPoint(0xaa6ef0, 5.0, 14, -3.5, 4.2, 1.4, false, 1.65); // Upper TV wall & archway lavender fill
+  const crystalLampLight = addPoint(0xff4da6, 3.6, 7.0, A.coffee_table.x - 0.2, 1.05, A.coffee_table.z - 0.1, false, 1.65);
+  const amberOrbLight = addPoint(0xff9b3d, 3.8, 6.5, -8.2, 0.65, -4.4, false, 1.65);
+  const candleLight = addPoint(0xffaa44, 2.8, 5.5, -8.1, 0.7, -6.4, false, 1.65);
+  addPoint(0x00d9ff, 4.5, 10, -7.8, 2.5, -6.8, false, 1.65); // Cool cyan city window bounce
+  addPoint(0xff2d95, 4.2, 8.0, A.spiral_stair.x, 2.3, A.spiral_stair.z, false, 1.65); // Pink spiral stair glow
 
   // Kitchen (Ref #5)
-  const kitchenSoffitLight = addPoint(0xffe1c4, 2.4, 12, A.marble_island.x, 3.0, A.marble_island.z, true);
-  addPoint(0xff3b9a, 1.8, 9.5, 5.5, 2.2, -6.2); // Hot-pink kitchen backsplash & counters
+  const kitchenSoffitLight = addPoint(0xffe0c2, 7.8, 14, A.marble_island.x, 3.05, A.marble_island.z, true, 1.65);
+  addPoint(0xff4da6, 5.8, 11, 5.5, 2.4, -6.0, false, 1.65); // Hot-pink kitchen backsplash & counters
+  addPoint(0xc899f5, 4.5, 11, 7.5, 3.0, 0.5, false, 1.65); // Kitchen-to-Foyer archway fill
 
-  // Foyer
-  addPoint(0xc98cff, 1.6, 8.5, 11.7, 3.0, -1.0);
+  // Foyer (crisp luxury marble & readable reinforced door without overexposure)
+  addPoint(0xdcc0fa, 6.8, 11, 11.7, 3.1, -1.0, false, 1.65);
+  addPoint(0xff99cc, 3.8, 7.5, 12.6, 2.0, -1.0, false, 1.65);
 
-  // Balcony
-  addPoint(0x00e5ff, 1.6, 11, -6.0, 2.8, -9.5);
-  addPoint(0xff2d95, 1.4, 10, -1.5, 2.8, -9.5);
+  // Balcony (preserved — balanced against open night sky)
+  addPoint(0x00e5ff, 14, 13, -6.2, 2.9, -9.5, false, 1.1);
+  addPoint(0xff3b9a, 12, 12, -1.4, 2.9, -9.5, false, 1.1);
 
-  // Bedroom (Ref #6)
-  addPoint(0xff2d95, 2.2, 11, -5.8, 2.9, 6.0); // Lush hot-pink bedroom ambiance
-  addPoint(0xffdd66, 1.7, 6.5, A.bedroom_lamp.x, 1.35, A.bedroom_lamp.z); // Warm yellow lamp
-  addPoint(0x00e5ff, 0.9, 7.5, -5.7, 1.8, 8.8); // Cyan ocean bay window reflection
+  // Bedroom (Ref #6 — rich hot-pink ambiance, warm yellow lamp, cyan bay window bounce)
+  addPoint(0xff3b9a, 7.2, 12, -5.8, 2.95, 5.8, false, 1.65);
+  addPoint(0xffd85c, 4.8, 8.0, A.bedroom_lamp.x, 1.4, A.bedroom_lamp.z, false, 1.65);
+  addPoint(0x2ce6ff, 4.2, 9.0, -5.7, 1.9, 8.6, false, 1.65);
 
-  // Bathroom
-  addPoint(0xe6b8ff, 1.8, 8.5, 0.2, 2.8, 5.8);
-  addPoint(0xff4da6, 1.1, 5.5, A.bathroom_mirror.x - 0.5, 1.8, A.bathroom_mirror.z);
+  // Bathroom (readable FM 104.7 mirror, crisp marble & illuminated glass shower)
+  addPoint(0xe6c8fa, 6.2, 10, 0.2, 2.95, 5.5, false, 1.65);
+  addPoint(0xff5cb0, 3.2, 6.5, A.bathroom_mirror.x - 0.65, 2.0, A.bathroom_mirror.z, false, 1.65);
+  addPoint(0xa8dcff, 4.8, 7.5, A.bathroom_shower.x, 2.95, A.bathroom_shower.z, false, 1.65);
 
-  // Security Room
-  addPoint(0x00e5ff, 1.9, 10, A.cctv_desk.x, 2.3, A.cctv_desk.z - 0.8);
-  addPoint(0xffaa33, 1.1, 6.0, A.radio_desk.x - 0.6, 1.6, A.radio_desk.z);
-  addPoint(0xff2d95, 1.0, 6.0, A.wall_safe.x + 0.8, 1.9, A.wall_safe.z);
+  // Security Room (dark tech walls + crisp cyan/warm readability on desks, Wall Safe & Heist Corkboard)
+  addPoint(0x7ae8ff, 18, 13, 6.2, 3.05, 5.8, false, 1.2);
+  addPoint(0x00e5ff, 11, 9, A.cctv_desk.x, 2.2, A.cctv_desk.z - 0.9, false, 1.2);
+  addPoint(0xffba52, 10, 8, A.radio_desk.x - 0.7, 1.9, A.radio_desk.z, false, 1.2);
+  addPoint(0xff66b8, 10, 8, 4.15, 2.1, 8.2, false, 1.2); // Focused accent on South-wall Safe
+  addPoint(0xffe0b2, 10, 8, 8.8, 2.3, 7.25, false, 1.2); // Focused gallery light on East-wall Heist Corkboard
 
   // --- 4. Steaming Coffee Mug Particles (Ref #1) ---
   const steamCount = 24;
@@ -127,14 +133,14 @@ export function buildLightingAndFX(scene, renderer, camera, layout) {
     smokeMat.color.setHex(turkeySmokeLevel > 0.7 ? 0x453d4f : 0xcbc2d9);
   }
 
-  // --- 6. Post-Processing: EffectComposer + UnrealBloomPass ---
+  // --- 6. Post-Processing: EffectComposer + UnrealBloomPass (high threshold so only true emissives bloom) ---
   const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.48, // strength
-    0.55, // radius
-    0.68  // threshold
+    0.34, // strength
+    0.45, // radius
+    0.90  // threshold
   );
   const outputPass = new OutputPass();
   composer.addPass(renderPass);
@@ -154,22 +160,24 @@ export function buildLightingAndFX(scene, renderer, camera, layout) {
       kitchenSoffitLight.castShadow = false;
     } else if (q === 'medium') {
       bloomPass.enabled = true;
-      bloomPass.strength = 0.34;
+      bloomPass.strength = 0.24;
+      bloomPass.threshold = 0.90;
       livingMainLight.castShadow = true;
       kitchenSoffitLight.castShadow = false;
     } else {
       bloomPass.enabled = true;
-      bloomPass.strength = 0.5;
+      bloomPass.strength = 0.34;
+      bloomPass.threshold = 0.90;
       livingMainLight.castShadow = true;
       kitchenSoffitLight.castShadow = true;
     }
   }
 
   function update(dt, elapsed) {
-    // Subtle candle & amber orb flicker
-    candleLight.intensity = 1.05 + Math.sin(elapsed * 11.3) * 0.18 + Math.cos(elapsed * 19.7) * 0.08;
-    amberOrbLight.intensity = 1.45 + Math.sin(elapsed * 2.5) * 0.08;
-    crystalLampLight.intensity = 1.55 + Math.sin(elapsed * 3.1) * 0.1;
+    // Subtle candle & amber orb flicker (balanced to avoid bloom blow-out)
+    candleLight.intensity = 2.8 + Math.sin(elapsed * 11.3) * 0.45 + Math.cos(elapsed * 19.7) * 0.2;
+    amberOrbLight.intensity = 3.8 + Math.sin(elapsed * 2.5) * 0.22;
+    crystalLampLight.intensity = 3.6 + Math.sin(elapsed * 3.1) * 0.25;
 
     // Update coffee steam
     const sp = steamGeo.attributes.position.array;

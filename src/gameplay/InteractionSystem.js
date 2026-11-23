@@ -453,6 +453,16 @@ export class InteractionSystem {
       }
     }
 
+    const isLargeFixture =
+      desc.type === 'door' ||
+      desc.type === 'exit' ||
+      desc.id === 'living_tv' ||
+      desc.id === 'kitchen_oven' ||
+      desc.id === 'wall_safe';
+
+    const lerpWeight = isLargeFixture ? 0.12 + 0.08 * pulse : 0.28 + 0.18 * pulse;
+    const targetIntensity = isLargeFixture ? 0.14 + 0.12 * pulse : 0.32 + 0.28 * pulse;
+
     root.traverse((child) => {
       const entry = this._clonedMaterialCache.get(child);
       if (!entry) return;
@@ -461,18 +471,13 @@ export class InteractionSystem {
         entry.highlightMat.forEach((mat, idx) => {
           const m = entry.meta[idx];
           if (mat?.emissive && m?.baseEmissive) {
-            mat.emissive.copy(m.baseEmissive).lerp(tint, 0.35 + 0.25 * pulse);
-            mat.emissiveIntensity = Math.max(m.baseIntensity, 0.45 + 0.45 * pulse);
+            mat.emissive.copy(m.baseEmissive).lerp(tint, lerpWeight);
+            mat.emissiveIntensity = Math.max(m.baseIntensity, targetIntensity);
           }
         });
       } else if (entry.highlightMat?.emissive) {
-        entry.highlightMat.emissive
-          .copy(entry.baseEmissive)
-          .lerp(tint, 0.35 + 0.25 * pulse);
-        entry.highlightMat.emissiveIntensity = Math.max(
-          entry.baseIntensity,
-          0.45 + 0.45 * pulse
-        );
+        entry.highlightMat.emissive.copy(entry.baseEmissive).lerp(tint, lerpWeight);
+        entry.highlightMat.emissiveIntensity = Math.max(entry.baseIntensity, targetIntensity);
       }
     });
   }

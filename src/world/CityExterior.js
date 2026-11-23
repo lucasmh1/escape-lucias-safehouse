@@ -74,30 +74,110 @@ export function buildCityExterior(scene, textures, eventBus) {
   boulevardN.position.set(-10, STREET_Y + 0.02, -32);
   root.add(boulevardN);
 
-  // --- 3. South Midnight Ocean & Cyan Shore Glow (Ref #6, outside Bedroom Bay Window) ---
+  // --- 3. South Midnight Ocean, Dusk Horizon & Cyan Shore Glow (Ref #6, outside Bedroom Bay Window) ---
   const oceanGeo = new THREE.PlaneGeometry(260, 140);
   const oceanMat = new THREE.MeshStandardMaterial({
-    color: 0x071a30,
-    emissive: 0x041d30,
-    emissiveIntensity: 0.7,
-    roughness: 0.18,
-    metalness: 0.75,
+    color: 0x0b2c4d,
+    emissive: 0x08385c,
+    emissiveIntensity: 1.05,
+    roughness: 0.16,
+    metalness: 0.65,
   });
   const ocean = new THREE.Mesh(oceanGeo, oceanMat);
   ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(-15, STREET_Y + 0.2, 84);
+  ocean.position.set(-10, -4.2, 72);
   root.add(ocean);
 
-  // Glowing cyan ocean shoreline wave strip (Ref #6)
+  // Glowing cyan bioluminescent shoreline wave strips clearly visible through the 4-panel bay window (Ref #6)
   const waveMat = new THREE.MeshBasicMaterial({
-    color: 0x00f0ff,
+    color: 0x00f5ff,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.78,
   });
-  const waveStrip = new THREE.Mesh(new THREE.PlaneGeometry(90, 2.8), waveMat);
+  const waveStrip = new THREE.Mesh(new THREE.PlaneGeometry(80, 3.6), waveMat);
   waveStrip.rotation.x = -Math.PI / 2;
-  waveStrip.position.set(-10, STREET_Y + 0.35, 27);
+  waveStrip.position.set(-6, -4.0, 24);
   root.add(waveStrip);
+
+  const waveStripFar = new THREE.Mesh(
+    new THREE.PlaneGeometry(110, 1.4),
+    new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0.45 })
+  );
+  waveStripFar.rotation.x = -Math.PI / 2;
+  waveStripFar.position.set(-6, -4.05, 38);
+  root.add(waveStripFar);
+
+  // Soft purple-magenta dusk horizon glow behind the ocean & palms (Ref #6)
+  const makeGlowTexture = (innerColor, outerColor) => {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 256;
+    const gctx = c.getContext('2d');
+    const rg = gctx.createRadialGradient(128, 150, 12, 128, 150, 128);
+    rg.addColorStop(0, innerColor);
+    rg.addColorStop(0.55, outerColor);
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    gctx.fillStyle = rg;
+    gctx.fillRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  };
+
+  const southHorizonGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(95, 38),
+    new THREE.MeshBasicMaterial({
+      map: makeGlowTexture('rgba(255, 65, 175, 0.75)', 'rgba(130, 35, 175, 0.32)'),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+    })
+  );
+  southHorizonGlow.position.set(-6, 4.5, 68);
+  southHorizonGlow.rotation.y = Math.PI;
+  root.add(southHorizonGlow);
+
+  // Split Hot-Magenta (West/Left) & Electric-Cyan (North-East/Right) Atmospheric Skyline Mist (Ref #3)
+  const magentaMist = new THREE.Mesh(
+    new THREE.PlaneGeometry(110, 65),
+    new THREE.MeshBasicMaterial({
+      map: makeGlowTexture('rgba(255, 35, 140, 0.58)', 'rgba(160, 20, 110, 0.22)'),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+    })
+  );
+  magentaMist.position.set(-34, 8, -72);
+  root.add(magentaMist);
+
+  const cyanMist = new THREE.Mesh(
+    new THREE.PlaneGeometry(110, 65),
+    new THREE.MeshBasicMaterial({
+      map: makeGlowTexture('rgba(0, 235, 255, 0.52)', 'rgba(0, 120, 185, 0.2)'),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+    })
+  );
+  cyanMist.position.set(22, 8, -72);
+  root.add(cyanMist);
+
+  const westMist = new THREE.Mesh(
+    new THREE.PlaneGeometry(110, 65),
+    new THREE.MeshBasicMaterial({
+      map: makeGlowTexture('rgba(255, 40, 155, 0.48)', 'rgba(110, 20, 140, 0.18)'),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+    })
+  );
+  westMist.position.set(-72, 8, -10);
+  westMist.rotation.y = Math.PI / 2;
+  root.add(westMist);
 
   // --- 4. Split Magenta / Cyan Miami Skyscrapers (Ref #1 & #3) ---
   const matMagenta = new THREE.MeshStandardMaterial({
@@ -250,11 +330,11 @@ export function buildCityExterior(scene, textures, eventBus) {
     palmTrees.push(group);
   }
 
-  // Palms outside the Bedroom 4-panel Bay Window (Ref #6) — rising right past the window!
-  createPalmTree(-8.5, -10.5, 16.5, 13.5, 1.05);
-  createPalmTree(-5.2, -10.5, 19.0, 14.2, 1.15);
-  createPalmTree(-2.4, -10.5, 17.0, 12.8, 0.95);
-  createPalmTree(-11.5, -10.5, 22.0, 15.0, 1.1);
+  // Palms outside the Bedroom 4-panel Bay Window (Ref #6) — crowns framed cleanly against dusk sky & ocean!
+  createPalmTree(-7.6, -4.5, 16.5, 7.6, 0.85);
+  createPalmTree(-5.2, -4.5, 18.2, 8.2, 0.92);
+  createPalmTree(-3.2, -4.5, 16.8, 7.1, 0.8);
+  createPalmTree(-10.2, -4.5, 21.0, 9.0, 0.95);
   // Palms along the wet neon boulevard (Ref #3)
   for (let i = 0; i < 6; i++) {
     createPalmTree(-18, STREET_Y, -18 - i * 14, 13, 0.95);

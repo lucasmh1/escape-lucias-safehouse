@@ -345,34 +345,64 @@ export const ENDINGS = {
 };
 
 export function getCurrentObjective(state) {
-  const { puzzles, flags, inventory } = state;
+  const { puzzles, flags, inventory, doors } = state;
   const hasItem = (id) => inventory.some((i) => i.id === id);
 
   if (flags.endingTriggered) {
     return 'Escape sequence in progress...';
   }
-  if (hasItem('master_exit_key')) {
+  if (hasItem('master_exit_key') || puzzles.safe.solved) {
     return 'Unlock the Main Entrance door in the East Foyer (or go full chaos on the Balcony).';
   }
-  if (!flags.voicemailHeard) {
-    return 'Check Lucia\'s Voicemail Dock in the Bedroom (or grab the TV Remote in the Living Room).';
-  }
+
+  const remainingDigits = [];
   if (!puzzles.tv.solved) {
-    return hasItem('tv_remote')
-      ? 'Use the 4K Smart TV in the Living Room to find the secret broadcast sequence.'
-      : 'Find Lucia\'s TV Remote on the Living Room coffee table.';
+    remainingDigits.push(hasItem('tv_remote') ? 'Living Room TV (Digit #1)' : 'TV Remote & Living Room TV (Digit #1)');
   }
   if (!puzzles.turkey.solved) {
-    return 'Inspect the Kitchen clues and set the Oven to thaw the decoy Thanksgiving turkey.';
+    remainingDigits.push('Kitchen Oven (Digit #2 + Keycard)');
   }
-  if (!puzzles.security.solved || !puzzles.radio.solved) {
-    const remaining = [];
-    if (!puzzles.security.solved) remaining.push('CCTV Terminal');
-    if (!puzzles.radio.solved) remaining.push('Analog Radio (check Bedroom & Bathroom for frequency)');
-    return `Unlock the Security Room with your Keycard and solve: ${remaining.join(' & ')}.`;
+  if (!puzzles.security.solved) {
+    remainingDigits.push('CCTV Terminal (Digit #3)');
   }
-  if (!puzzles.safe.solved) {
+  if (!puzzles.radio.solved) {
+    remainingDigits.push('Analog Radio (Digit #4)');
+  }
+
+  // All 4 code digits discovered -> open the Wall Safe
+  if (remainingDigits.length === 0) {
     return 'Combine all 4 digits (TV -> Oven -> CCTV -> Radio) on the Security Room Wall Safe.';
   }
-  return 'Use the Master Exit Key on the Main Entrance door to escape!';
+
+  // Very beginning of a fresh run before any progress
+  const anyProgress =
+    puzzles.tv.solved ||
+    puzzles.turkey.solved ||
+    puzzles.security.solved ||
+    puzzles.radio.solved ||
+    hasItem('tv_remote') ||
+    hasItem('security_keycard') ||
+    flags.voicemailHeard;
+
+  if (!anyProgress) {
+    return 'Check Lucia\'s Voicemail Dock in the Bedroom, or grab the TV Remote in the Living Room.';
+  }
+
+  const securityUnlocked = hasItem('security_keycard') || (doors?.door_security && !doors.door_security.locked);
+
+  // If Security Room is still locked and Turkey isn't solved, prioritize accessible puzzles
+  if (!securityUnlocked && !puzzles.turkey.solved) {
+    if (!puzzles.tv.solved) {
+      return hasItem('tv_remote')
+        ? 'Use the 4K Smart TV in the Living Room for Digit #1, then thaw the Kitchen Turkey.'
+        : 'Grab the TV Remote on the coffee table for Digit #1, or inspect the Kitchen Oven.';
+    }
+    return 'Inspect the Kitchen clues and set the Oven to thaw the decoy turkey (Digit #2 + Security Keycard).';
+  }
+
+  // Otherwise (any order of solved puzzles), list the exact remaining digit puzzles
+  if (remainingDigits.length === 1) {
+    return `Final digit remaining — solve: ${remainingDigits[0]}.`;
+  }
+  return `Remaining safe digits (${4 - remainingDigits.length}/4): ${remainingDigits.join(' • ')}.`;
 }

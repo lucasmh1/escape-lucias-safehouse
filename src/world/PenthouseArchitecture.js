@@ -51,19 +51,19 @@ export function buildPenthouseArchitecture(scene, layout, textures, interactable
     metalness: 0.22,
   });
   const matWallLavender = new THREE.MeshStandardMaterial({
-    color: 0x3b2c52,
-    roughness: 0.65,
-    metalness: 0.05,
+    color: 0x564178,
+    roughness: 0.58,
+    metalness: 0.06,
   });
   const matWallPink = new THREE.MeshStandardMaterial({
-    color: 0x6b2656,
-    roughness: 0.58,
-    metalness: 0.05,
+    color: 0x993678,
+    roughness: 0.52,
+    metalness: 0.06,
   });
   const matWallDark = new THREE.MeshStandardMaterial({
-    color: 0x1e192b,
-    roughness: 0.6,
-    metalness: 0.15,
+    color: 0x332d4d,
+    roughness: 0.48,
+    metalness: 0.18,
   });
   const matGlossWhite = new THREE.MeshStandardMaterial({
     color: 0xebe4f5,
@@ -98,9 +98,9 @@ export function buildPenthouseArchitecture(scene, layout, textures, interactable
     depthWrite: false,
   });
   const matCeiling = new THREE.MeshStandardMaterial({
-    color: 0x261d38,
-    roughness: 0.75,
-    metalness: 0.05,
+    color: 0x382c54,
+    roughness: 0.68,
+    metalness: 0.06,
   });
   const matSoffit = new THREE.MeshStandardMaterial({
     map: textures.getSoffitCeiling(),
@@ -448,30 +448,72 @@ export function buildPenthouseArchitecture(scene, layout, textures, interactable
       doorGroup.add(leftPanel, rightPanel);
     } else if (def.type === 'exit') {
       // Heavy reinforced penthouse Main Entrance door (orientation: 'z')
+      // Non-highlighted architectural chrome frame & flanking art-deco wall sconces attached to root
+      const frameGroup = new THREE.Group();
+      frameGroup.position.set(def.x, 0, def.z);
+      const jambN = new THREE.Mesh(new THREE.BoxGeometry(0.28, def.height + 0.12, 0.12), matChrome);
+      jambN.position.set(0, (def.height + 0.12) * 0.5, -def.width * 0.5 - 0.04);
+      const jambS = jambN.clone();
+      jambS.position.z = def.width * 0.5 + 0.04;
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.14, def.width + 0.24), matChrome);
+      lintel.position.set(0, def.height + 0.07, 0);
+      frameGroup.add(jambN, jambS, lintel);
+
+      // Flanking glowing neon-warm art-deco Foyer sconces on East wall
+      const sconceMat = new THREE.MeshBasicMaterial({ color: 0xffd6f0 });
+      [-1.18, 1.18].forEach((sz) => {
+        const sconceBack = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.72, 0.14), matChrome);
+        sconceBack.position.set(-0.14, 1.75, sz);
+        const sconceTube = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.62, 10), sconceMat);
+        sconceTube.position.set(-0.2, 1.75, sz);
+        frameGroup.add(sconceBack, sconceTube);
+      });
+      root.add(frameGroup);
+
+      // Door leaf: gunmetal steel with recessed architectural panels & brushed chrome hardware
       const panelMat = new THREE.MeshStandardMaterial({
-        color: 0x201c2e,
+        color: 0x35314d,
+        roughness: 0.42,
+        metalness: 0.55,
+      });
+      const insetMat = new THREE.MeshStandardMaterial({
+        color: 0x221e33,
         roughness: 0.35,
-        metalness: 0.78,
+        metalness: 0.65,
       });
       const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.14, def.height, def.width - 0.06), panelMat);
       leaf.position.set(0, def.height * 0.5, 0);
       doorGroup.add(leaf);
 
-      // Steel reinforcement crossbars
-      for (let ry of [0.6, 1.35, 2.05]) {
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, def.width - 0.16), matChrome);
-        bar.position.set(0, ry, 0);
+      // Recessed double panels (upper & lower)
+      const upperInset = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.92, def.width - 0.42), insetMat);
+      upperInset.position.set(-0.01, 1.82, 0);
+      const lowerInset = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.86, def.width - 0.42), insetMat);
+      lowerInset.position.set(-0.01, 0.68, 0);
+      doorGroup.add(upperInset, lowerInset);
+
+      // Horizontal steel reinforcement bars + vertical brushed chrome pull handle
+      for (let ry of [0.22, 1.24, 2.34]) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.065, def.width - 0.14), matChrome);
+        bar.position.set(-0.01, ry, 0);
         doorGroup.add(bar);
       }
+      const pullBar = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.72, 10), matChrome);
+      pullBar.position.set(-0.14, 1.18, 0.46);
+      const pullStand1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.04), matChrome);
+      pullStand1.position.set(-0.09, 1.46, 0.46);
+      const pullStand2 = pullStand1.clone();
+      pullStand2.position.y = 0.9;
+      doorGroup.add(pullBar, pullStand1, pullStand2);
 
-      // Electronic Master Key Lock Box + LED indicator
-      const lockBox = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.28, 0.16), matMullion);
-      lockBox.position.set(-0.08, 1.28, 0.55);
+      // Electronic Master Key Lock Box + glowing LED indicator
+      const lockBox = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.32, 0.18), matMullion);
+      lockBox.position.set(-0.1, 1.32, -0.52);
       doorGroup.add(lockBox);
 
       mainDoorLedMat = new THREE.MeshBasicMaterial({ color: 0xff2244 });
-      const led = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 10), mainDoorLedMat);
-      led.position.set(-0.18, 1.34, 0.55);
+      const led = new THREE.Mesh(new THREE.SphereGeometry(0.038, 10, 10), mainDoorLedMat);
+      led.position.set(-0.19, 1.39, -0.52);
       doorGroup.add(led);
     } else {
       // Hinged interior door (orientation: 'x')

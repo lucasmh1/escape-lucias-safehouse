@@ -276,34 +276,50 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   livingRug.receiveShadow = true;
   root.add(livingRug);
 
-  // Curved sectional built from 7 plush cushioned wedges in an arc facing the TV (+Z)
+  // Curved plush sectional built from 13 smoothly overlapping rounded segments facing the TV (+Z) (Ref #2)
   const sofaGroup = new THREE.Group();
   sofaGroup.position.set(A.curved_sofa.x, 0, A.curved_sofa.z);
   const sofaRadius = 2.05;
-  for (let i = 0; i < 7; i++) {
-    const ang = -Math.PI * 0.85 + (i / 6) * Math.PI * 0.78;
+  const matSofaAccent = new THREE.MeshStandardMaterial({ color: 0xe8dcf7, roughness: 0.78, metalness: 0.04 });
+  const matPillowPink = new THREE.MeshStandardMaterial({ color: 0xff82c4, roughness: 0.92 });
+  for (let i = 0; i < 13; i++) {
+    const ang = -Math.PI * 0.88 + (i / 12) * Math.PI * 0.84;
     const seg = new THREE.Group();
     const sx = Math.cos(ang) * sofaRadius;
     const sz = Math.sin(ang) * sofaRadius;
     seg.position.set(sx, 0, sz);
     seg.rotation.y = -ang + Math.PI / 2;
 
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.42, 0.92), matPlushLavender);
-    base.position.y = 0.21;
-    base.castShadow = true;
-    base.receiveShadow = true;
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.56, 0.28), matPlushLavender);
-    back.position.set(0, 0.56, -0.34);
-    back.castShadow = true;
-    seg.add(base, back);
+    // Curved base plinth
+    const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.22, 0.9), matPlushLavender);
+    plinth.position.y = 0.11;
+    plinth.castShadow = true;
+    plinth.receiveShadow = true;
 
-    if (i % 2 === 1) {
-      const pillow = new THREE.Mesh(
-        new THREE.BoxGeometry(0.42, 0.34, 0.16),
-        new THREE.MeshStandardMaterial({ color: 0xff82c4, roughness: 0.9 })
-      );
-      pillow.position.set(0, 0.54, -0.14);
-      pillow.rotation.x = -0.2;
+    // Rounded plush seat cushion + front bolster roll
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.22, 0.82), matSofaAccent);
+    seat.position.set(0, 0.31, 0.04);
+    seat.castShadow = true;
+    const frontRoll = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.62, 12), matSofaAccent);
+    frontRoll.rotation.z = Math.PI / 2;
+    frontRoll.position.set(0, 0.31, 0.45);
+
+    // Rounded plush backrest + top bolster roll
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.48, 0.28), matPlushLavender);
+    back.position.set(0, 0.56, -0.34);
+    back.rotation.x = -0.14;
+    back.castShadow = true;
+    const backRoll = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.62, 12), matSofaAccent);
+    backRoll.rotation.z = Math.PI / 2;
+    backRoll.position.set(0, 0.78, -0.37);
+
+    seg.add(plinth, seat, frontRoll, back, backRoll);
+
+    if (i % 3 === 1) {
+      const pillow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), matPillowPink);
+      pillow.scale.set(1.25, 0.95, 0.48);
+      pillow.position.set(0, 0.56, -0.12);
+      pillow.rotation.x = -0.25;
       seg.add(pillow);
     }
     sofaGroup.add(seg);
@@ -311,10 +327,17 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   root.add(sofaGroup);
   addBoxCollider('collider_curved_sofa', A.curved_sofa.x - 0.1, A.curved_sofa.z - 1.3, 3.6, 1.4, 0.9);
 
-  // Matching round ottoman (Ref #2)
-  const ottoman = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.52, 0.42, 18), matPlushLavender);
-  ottoman.position.set(-1.75, 0.21, -1.55);
-  ottoman.castShadow = true;
+  // Matching double-tiered plush round ottoman (Ref #2)
+  const ottoman = new THREE.Group();
+  ottoman.position.set(-1.75, 0, -1.55);
+  const ottoBase = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.46, 0.2, 24), matPlushLavender);
+  ottoBase.position.y = 0.1;
+  const ottoCushion = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.54, 0.18, 24), matSofaAccent);
+  ottoCushion.position.y = 0.3;
+  const ottoRim = new THREE.Mesh(new THREE.TorusGeometry(0.54, 0.075, 10, 24), matSofaAccent);
+  ottoRim.rotation.x = Math.PI / 2;
+  ottoRim.position.y = 0.32;
+  ottoman.add(ottoBase, ottoCushion, ottoRim);
   root.add(ottoman);
   addBoxCollider('collider_ottoman', -1.75, -1.55, 1.1, 1.1, 0.5);
 
@@ -662,18 +685,31 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   });
   pickups.push(crowbarGroup);
 
-  // Balcony Escape Ledge / Coiled Grapple Rope (Chaos Escape Exit)
+  // Balcony Escape Ledge / Detailed Grapple Clamp & Coiled Climbing Rope (Chaos Escape Exit)
   const ledgeGroup = new THREE.Group();
   ledgeGroup.position.set(A.balcony_escape_ledge.x, 0, A.balcony_escape_ledge.z);
-  const coil = new THREE.Mesh(
-    new THREE.TorusGeometry(0.24, 0.06, 10, 20),
-    new THREE.MeshStandardMaterial({ color: 0xffaa2b, emissive: 0x663300, roughness: 0.7 })
-  );
-  coil.rotation.x = Math.PI / 2;
-  coil.position.y = 0.08;
-  const anchorPost = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.34, 0.22), matNeonPink);
-  anchorPost.position.set(0, 1.1, -0.32);
-  ledgeGroup.add(coil, anchorPost);
+  const ropeMat = new THREE.MeshStandardMaterial({ color: 0xf59e2d, roughness: 0.72, metalness: 0.08 });
+  // Coiled climbing rope on balcony floor
+  for (let c = 0; c < 3; c++) {
+    const coil = new THREE.Mesh(new THREE.TorusGeometry(0.24 - c * 0.03, 0.036, 10, 24), ropeMat);
+    coil.rotation.x = Math.PI / 2;
+    coil.position.y = 0.04 + c * 0.048;
+    ledgeGroup.add(coil);
+  }
+  // Rope strand rising up to the railing grapple clamp
+  const ropeLine = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.18, 8), ropeMat);
+  ropeLine.position.set(0, 0.62, -0.26);
+  ropeLine.rotation.x = -0.22;
+  // Detailed steel/chrome rail grapple clamp + carabiner ring (no flat pink box!)
+  const clampHousing = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.18), matDarkMetal);
+  clampHousing.position.set(0, 1.24, -0.38);
+  const clampJaw = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.22), matChrome);
+  clampJaw.position.set(0, 1.32, -0.38);
+  const carabiner = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.018, 8, 16), matChrome);
+  carabiner.position.set(0, 1.14, -0.32);
+  const statusStrip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.024, 0.02), matNeonCyan);
+  statusStrip.position.set(0, 1.24, -0.285);
+  ledgeGroup.add(ropeLine, clampHousing, clampJaw, carabiner, statusStrip);
   root.add(ledgeGroup);
   registerInteractable(ledgeGroup, {
     id: 'balcony_escape_ledge',
@@ -694,20 +730,86 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   bedRug.position.set(-5.7, 0.012, 6.7);
   root.add(bedRug);
 
-  // Luxury King Bed
+  // Luxury Sculpted King Bed (tapered legs, quilted velvet headboard, rounded mattress, draped duvet & plump pillows)
   const bedGroup = new THREE.Group();
   bedGroup.position.set(A.bed.x, 0, A.bed.z);
-  const mattress = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.48, 2.2), matPlushLavender);
-  mattress.position.y = 0.28;
-  const duvet = new THREE.Mesh(new THREE.BoxGeometry(2.18, 0.16, 1.55), matCoral);
-  duvet.position.set(0, 0.48, 0.28);
-  const headboard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.25, 2.3), matPinkCabinet);
-  headboard.position.set(-1.12, 0.625, 0);
-  const pillow1 = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.18, 0.75), matGlossWhite);
-  pillow1.position.set(-0.78, 0.58, -0.48);
-  const pillow2 = pillow1.clone();
-  pillow2.position.z = 0.48;
-  bedGroup.add(mattress, duvet, headboard, pillow1, pillow2);
+  const matBedFrame = new THREE.MeshStandardMaterial({ color: 0x3b2338, roughness: 0.42, metalness: 0.25 });
+  const matMattress = new THREE.MeshStandardMaterial({ color: 0xede2fa, roughness: 0.82 });
+  const matDuvet = new THREE.MeshStandardMaterial({ color: 0xff5e8a, roughness: 0.88 });
+  const matThrow = new THREE.MeshStandardMaterial({ color: 0x9b4d96, roughness: 0.92 });
+  const matVelvetHead = new THREE.MeshStandardMaterial({ color: 0x8f2d6c, roughness: 0.84, metalness: 0.08 });
+
+  // 4 tapered brass-tipped legs + recessed upholstered platform base
+  [
+    [-1.0, -1.0],
+    [1.0, -1.0],
+    [-1.0, 1.0],
+    [1.0, 1.0],
+  ].forEach(([lx, lz]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.022, 0.16, 10), matGold);
+    leg.position.set(lx, 0.08, lz);
+    bedGroup.add(leg);
+  });
+  const bedBase = new THREE.Mesh(new THREE.BoxGeometry(2.16, 0.16, 2.22), matBedFrame);
+  bedBase.position.y = 0.22;
+  bedGroup.add(bedBase);
+
+  // Rounded plush mattress (core + cylindrical rounded edges on front/sides)
+  const mattressCore = new THREE.Mesh(new THREE.BoxGeometry(2.04, 0.24, 2.08), matMattress);
+  mattressCore.position.y = 0.42;
+  const matEdgeE = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.08, 12), matMattress);
+  matEdgeE.rotation.x = Math.PI / 2;
+  matEdgeE.position.set(1.02, 0.42, 0);
+  const matEdgeN = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.04, 12), matMattress);
+  matEdgeN.rotation.z = Math.PI / 2;
+  matEdgeN.position.set(0, 0.42, -1.04);
+  const matEdgeS = matEdgeN.clone();
+  matEdgeS.position.z = 1.04;
+  bedGroup.add(mattressCore, matEdgeE, matEdgeN, matEdgeS);
+
+  // Draped coral duvet overhanging mattress sides + soft folded blush cuff + plum throw blanket
+  const duvetTop = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.12, 2.16), matDuvet);
+  duvetTop.position.set(0.32, 0.54, 0);
+  const duvetRollW = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 2.16, 12), matGlossWhite);
+  duvetRollW.rotation.x = Math.PI / 2;
+  duvetRollW.position.set(-0.4, 0.56, 0);
+  const duvetDrapeE = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.34, 2.14), matDuvet);
+  duvetDrapeE.position.set(1.08, 0.38, 0);
+  const duvetDrapeN = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.3, 0.07), matDuvet);
+  duvetDrapeN.position.set(0.32, 0.39, -1.09);
+  const duvetDrapeS = duvetDrapeN.clone();
+  duvetDrapeS.position.z = 1.09;
+  const throwBlanket = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.14, 2.2), matThrow);
+  throwBlanket.position.set(0.76, 0.56, 0);
+  bedGroup.add(duvetTop, duvetRollW, duvetDrapeE, duvetDrapeN, duvetDrapeS, throwBlanket);
+
+  // Quilted / channeled padded velvet headboard with gold trim
+  const hbBacking = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.24, 2.34), matBedFrame);
+  hbBacking.position.set(-1.14, 0.72, 0);
+  const hbGoldTop = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 2.36), matGold);
+  hbGoldTop.position.set(-1.13, 1.35, 0);
+  bedGroup.add(hbBacking, hbGoldTop);
+  for (let i = 0; i < 6; i++) {
+    const pz = -0.92 + i * 0.368;
+    const channel = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 1.14, 12), matVelvetHead);
+    channel.scale.set(0.55, 1, 1.05);
+    channel.position.set(-1.05, 0.72, pz);
+    bedGroup.add(channel);
+  }
+
+  // Plump rounded sleeping pillows + angled accent cushions
+  [-0.5, 0.5].forEach((pz) => {
+    const mainP = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 12), matGlossWhite);
+    mainP.scale.set(0.68, 0.42, 1.35);
+    mainP.position.set(-0.78, 0.62, pz);
+    mainP.rotation.z = -0.22;
+    const accentP = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), matDuvet);
+    accentP.scale.set(0.55, 0.65, 1.15);
+    accentP.position.set(-0.56, 0.64, pz * 0.88);
+    accentP.rotation.z = -0.35;
+    bedGroup.add(mainP, accentP);
+  });
+
   root.add(bedGroup);
   addBoxCollider('collider_bed', A.bed.x, A.bed.z, 2.25, 2.25, 0.8);
 
@@ -766,19 +868,66 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
     room: 'bedroom',
   });
 
-  // Ref #6: Coral Sofa, Yellow Glowing Table Lamp, Glass Coffee Table & Cyan Accent Chair
+  // Ref #6: Sculpted Coral Sofa, Yellow Glowing Table Lamp, Framed Glass Coffee Table & Sculpted Cyan Accent Chair
   const coralSofa = new THREE.Group();
   coralSofa.position.set(A.bedroom_coral_sofa.x, 0, A.bedroom_coral_sofa.z);
-  const csSeat = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.42, 0.86), matCoral);
-  csSeat.position.y = 0.21;
-  const csBack = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.5, 0.22), matCoral);
-  csBack.position.set(0, 0.56, 0.34);
-  coralSofa.add(csSeat, csBack);
+  const matSofaLeg = new THREE.MeshStandardMaterial({ color: 0x2a1c28, roughness: 0.5, metalness: 0.3 });
+  const matCoralPlush = new THREE.MeshStandardMaterial({ color: 0xff7796, roughness: 0.85 });
+  // 4 tapered sofa legs
+  [
+    [-0.95, -0.34],
+    [0.95, -0.34],
+    [-0.95, 0.34],
+    [0.95, 0.34],
+  ].forEach(([lx, lz]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.016, 0.14, 8), matSofaLeg);
+    leg.position.set(lx, 0.07, lz);
+    coralSofa.add(leg);
+  });
+  // Sofa base deck
+  const csBase = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.16, 0.86), matCoral);
+  csBase.position.y = 0.2;
+  coralSofa.add(csBase);
+  // 3 sculpted rounded seat cushions
+  [-0.62, 0, 0.62].forEach((cx) => {
+    const cushion = new THREE.Mesh(new THREE.BoxGeometry(0.59, 0.18, 0.74), matCoralPlush);
+    cushion.position.set(cx, 0.36, -0.02);
+    const front = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.59, 10), matCoralPlush);
+    front.rotation.z = Math.PI / 2;
+    front.position.set(cx, 0.36, -0.39);
+    coralSofa.add(cushion, front);
+  });
+  // Sculpted rounded armrests on left & right ends
+  [-1.0, 1.0].forEach((ax) => {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.86), matCoral);
+    arm.position.set(ax, 0.44, 0);
+    const armTop = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.86, 10), matCoralPlush);
+    armTop.rotation.x = Math.PI / 2;
+    armTop.position.set(ax, 0.66, 0);
+    coralSofa.add(arm, armTop);
+  });
+  // Angled plush backrest + 3 accent throw pillows (Ref #6)
+  const csBack = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.48, 0.22), matCoral);
+  csBack.position.set(0, 0.62, 0.32);
+  csBack.rotation.x = 0.14;
+  coralSofa.add(csBack);
+  const pillowColors = [0x4c2838, 0xff94ad, 0xe85a82];
+  [-0.64, 0.05, 0.68].forEach((px, idx) => {
+    const p = new THREE.Mesh(
+      new THREE.SphereGeometry(0.21, 12, 10),
+      new THREE.MeshStandardMaterial({ color: pillowColors[idx], roughness: 0.9 })
+    );
+    p.scale.set(1.25, 1.0, 0.45);
+    p.position.set(px, 0.58, 0.14);
+    p.rotation.y = (idx - 1) * 0.22;
+    p.rotation.x = 0.22;
+    coralSofa.add(p);
+  });
   root.add(coralSofa);
-  addBoxCollider('collider_coral_sofa', A.bedroom_coral_sofa.x, A.bedroom_coral_sofa.z, 2.15, 0.9, 0.8);
+  addBoxCollider('collider_coral_sofa', A.bedroom_coral_sofa.x, A.bedroom_coral_sofa.z, 2.2, 0.92, 0.85);
 
   // Side table + Yellow Table Lamp (Ref #6 — Chaos prop)
-  const lampTable = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.62, 14), matDarkMetal);
+  const lampTable = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.62, 16), matDarkMetal);
   lampTable.position.set(A.bedroom_lamp.x, 0.31, A.bedroom_lamp.z);
   root.add(lampTable);
 
@@ -800,13 +949,65 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   root.add(bedLamp);
   registerChaosProp('bedroom_lamp', bedLamp, 'Warm Yellow Designer Lamp', 'bedroom', 3800);
 
-  // Rounded glass coffee table + cyan accent chair (Ref #6)
-  const bedTable = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.05, 0.68), matAcrylic);
-  bedTable.position.set(-5.6, 0.42, 7.25);
-  root.add(bedTable);
-  const cyanChair = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.65, 0.72), matCyanFabric);
-  cyanChair.position.set(-3.4, 0.325, 6.75);
-  cyanChair.rotation.y = -0.5;
+  // Framed rounded glass-top coffee table with slender legs & ceramic bowls (Ref #6)
+  const bedTableGroup = new THREE.Group();
+  bedTableGroup.position.set(-5.6, 0, 7.22);
+  const btFrame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 0.72), matDarkMetal);
+  btFrame.position.y = 0.4;
+  const btGlass = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.025, 0.64), matAcrylic);
+  btGlass.position.y = 0.435;
+  [
+    [-0.52, -0.28],
+    [0.52, -0.28],
+    [-0.52, 0.28],
+    [0.52, 0.28],
+  ].forEach(([lx, lz]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.014, 0.4, 8), matDarkMetal);
+    leg.position.set(lx, 0.2, lz);
+    bedTableGroup.add(leg);
+  });
+  const decorBowl = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.07, 0.07, 14),
+    new THREE.MeshStandardMaterial({ color: 0xff9ec7, roughness: 0.25 })
+  );
+  decorBowl.position.set(-0.22, 0.47, 0.04);
+  bedTableGroup.add(btFrame, btGlass, decorBowl);
+  root.add(bedTableGroup);
+
+  // Sculpted Mid-Century Cyan Accent Lounge Chair (Ref #6)
+  const cyanChair = new THREE.Group();
+  cyanChair.position.set(-3.45, 0, 6.72);
+  cyanChair.rotation.y = -0.6;
+  [
+    [-0.3, -0.28],
+    [0.3, -0.28],
+    [-0.3, 0.28],
+    [0.3, 0.28],
+  ].forEach(([lx, lz]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.014, 0.22, 8), matSofaLeg);
+    leg.position.set(lx, 0.11, lz);
+    cyanChair.add(leg);
+  });
+  const ccSeat = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.18, 0.68), matCyanFabric);
+  ccSeat.position.y = 0.3;
+  const ccSeatRoll = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.72, 10), matCyanFabric);
+  ccSeatRoll.rotation.z = Math.PI / 2;
+  ccSeatRoll.position.set(0, 0.3, 0.34);
+  const ccBack = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.48, 0.16), matCyanFabric);
+  ccBack.position.set(0, 0.58, -0.28);
+  ccBack.rotation.x = -0.18;
+  const ccBackRoll = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.72, 10), matCyanFabric);
+  ccBackRoll.rotation.z = Math.PI / 2;
+  ccBackRoll.position.set(0, 0.81, -0.32);
+  [-0.36, 0.36].forEach((ax) => {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.28, 0.66), matCyanFabric);
+    arm.position.set(ax, 0.44, 0);
+    const armCap = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.66, 10), matCyanFabric);
+    armCap.rotation.x = Math.PI / 2;
+    armCap.position.set(ax, 0.58, 0);
+    cyanChair.add(arm, armCap);
+  });
+  cyanChair.add(ccSeat, ccSeatRoll, ccBack, ccBackRoll);
   root.add(cyanChair);
   addPottedPlant(-8.35, 8.65, 1.0);
 
@@ -818,7 +1019,31 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   root.add(vanity);
   addBoxCollider('collider_vanity', A.bathroom_vanity.x, A.bathroom_vanity.z, 0.8, 2.15, 0.9);
 
-  // Steamed Backlit Bathroom Mirror (Clue -> 104.7 MHz)
+  // Sculpted Ceramic Vessel Sink + Chrome Curved Faucet + Soap Dispenser on Vanity
+  const vesselSink = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.24, 0.18, 0.16, 20),
+    matGlossWhite
+  );
+  vesselSink.position.set(A.bathroom_vanity.x - 0.04, 0.96, A.bathroom_vanity.z);
+  const sinkInner = new THREE.Mesh(
+    new THREE.CircleGeometry(0.2, 18),
+    new THREE.MeshStandardMaterial({ color: 0xd0c6e0, roughness: 0.15 })
+  );
+  sinkInner.rotation.x = -Math.PI / 2;
+  sinkInner.position.set(A.bathroom_vanity.x - 0.04, 1.042, A.bathroom_vanity.z);
+  const bathFaucetStem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.24, 10), matChrome);
+  bathFaucetStem.position.set(A.bathroom_vanity.x + 0.22, 1.0, A.bathroom_vanity.z);
+  const bathFaucetSpout = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.016, 8, 12, Math.PI), matChrome);
+  bathFaucetSpout.rotation.y = Math.PI / 2;
+  bathFaucetSpout.position.set(A.bathroom_vanity.x + 0.13, 1.12, A.bathroom_vanity.z);
+  const soapBottle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.036, 0.04, 0.14, 10),
+    new THREE.MeshStandardMaterial({ color: 0xff4da6, roughness: 0.2 })
+  );
+  soapBottle.position.set(A.bathroom_vanity.x, 0.95, A.bathroom_vanity.z - 0.45);
+  root.add(vesselSink, sinkInner, bathFaucetStem, bathFaucetSpout, soapBottle);
+
+  // Steamed Backlit Bathroom Mirror (Clue -> 104.7 MHz) + Glowing Overhead LED Vanity Strip
   const mirrorGroup = new THREE.Group();
   mirrorGroup.position.set(A.bathroom_mirror.x, A.bathroom_mirror.y, A.bathroom_mirror.z);
   const mirrorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.15, 1.75), matNeonPink);
@@ -827,15 +1052,23 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
     new THREE.MeshStandardMaterial({
       map: textures.getBathroomMirrorTexture(),
       emissiveMap: textures.getBathroomMirrorTexture(),
-      emissive: new THREE.Color(0x8866aa),
-      emissiveIntensity: 0.45,
+      emissive: new THREE.Color(0x9977bb),
+      emissiveIntensity: 0.55,
       roughness: 0.12,
       metalness: 0.65,
     })
   );
   mirrorGlass.rotation.y = -Math.PI / 2;
   mirrorGlass.position.x = -0.045;
-  mirrorGroup.add(mirrorFrame, mirrorGlass);
+  // Bright glowing vanity light bar above the mirror
+  const vanityBarHousing = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 1.65), matChrome);
+  vanityBarHousing.position.set(-0.08, 0.72, 0);
+  const vanityBarGlow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.08, 0.04, 1.58),
+    new THREE.MeshBasicMaterial({ color: 0xffeef8 })
+  );
+  vanityBarGlow.position.set(-0.1, 0.68, 0);
+  mirrorGroup.add(mirrorFrame, mirrorGlass, vanityBarHousing, vanityBarGlow);
   root.add(mirrorGroup);
   registerInteractable(mirrorGroup, {
     id: 'bathroom_mirror',
@@ -846,27 +1079,126 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
     room: 'bathroom',
   });
 
-  // Walk-in Glass Shower Enclosure
-  const showerGlass = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.35, 2.2), matAcrylic);
-  showerGlass.position.set(A.bathroom_shower.x + 1.05, 1.175, A.bathroom_shower.z);
-  const showerHead = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.04, 16), matChrome);
-  showerHead.position.set(A.bathroom_shower.x, 2.45, A.bathroom_shower.z);
-  root.add(showerGlass, showerHead);
+  // Luxury Walk-in Glass Shower Enclosure (curb tray, framed glass, chrome trim, rainfall arm & mixer)
+  const showerGroup = new THREE.Group();
+  showerGroup.position.set(A.bathroom_shower.x, 0, A.bathroom_shower.z);
+  // Raised dark marble shower floor tray & curb
+  const showerTray = new THREE.Mesh(
+    new THREE.BoxGeometry(2.1, 0.09, 2.2),
+    new THREE.MeshStandardMaterial({ color: 0x2c2440, roughness: 0.25, metalness: 0.2 })
+  );
+  showerTray.position.y = 0.045;
+  // Glass partition panel + chrome vertical framing & door pull handle
+  const showerGlass = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.35, 2.2), matAcrylic);
+  showerGlass.position.set(1.05, 1.22, 0);
+  const showerPostN = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.38, 0.07), matChrome);
+  showerPostN.position.set(1.05, 1.22, -1.1);
+  const showerPostS = showerPostN.clone();
+  showerPostS.position.z = 1.1;
+  const showerTopBar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 2.24), matChrome);
+  showerTopBar.position.set(1.05, 2.4, 0);
+  const showerHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.42, 8), matChrome);
+  showerHandle.position.set(1.12, 1.15, -0.55);
+  // Chrome vertical riser pipe, mixer dial & rainfall shower head
+  const showerPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.85, 10), matChrome);
+  showerPipe.position.set(-0.98, 1.55, 0);
+  const showerArm = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.55, 10), matChrome);
+  showerArm.rotation.z = Math.PI / 2;
+  showerArm.position.set(-0.72, 2.45, 0);
+  const showerHead = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.04, 18), matChrome);
+  showerHead.position.set(-0.46, 2.42, 0);
+  const showerMixer = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.05, 12), matChrome);
+  showerMixer.rotation.z = Math.PI / 2;
+  showerMixer.position.set(-0.98, 1.18, 0);
+  // Subtle recessed shower ceiling light disc
+  const showerCeilingDisc = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16, 0.16, 0.03, 14),
+    new THREE.MeshBasicMaterial({ color: 0xd9f2ff })
+  );
+  showerCeilingDisc.position.set(0, 3.36, 0);
+  showerGroup.add(
+    showerTray,
+    showerGlass,
+    showerPostN,
+    showerPostS,
+    showerTopBar,
+    showerHandle,
+    showerPipe,
+    showerArm,
+    showerHead,
+    showerMixer,
+    showerCeilingDisc
+  );
+  root.add(showerGroup);
   addBoxCollider('collider_shower_glass', A.bathroom_shower.x + 1.05, A.bathroom_shower.z, 0.16, 2.2, 2.4);
 
   // =========================================================================
   // 7. SECURITY & COMMS ROOM
   // =========================================================================
+  const matDeskWood = new THREE.MeshStandardMaterial({
+    map: textures.getDarkWood(2, 1),
+    color: 0x9e7458,
+    roughness: 0.36,
+    metalness: 0.12,
+  });
+  const matDeskSteel = new THREE.MeshStandardMaterial({
+    color: 0x424863,
+    roughness: 0.32,
+    metalness: 0.72,
+  });
+  const matDrawerFace = new THREE.MeshStandardMaterial({
+    color: 0x33384f,
+    roughness: 0.38,
+    metalness: 0.6,
+  });
 
-  // CCTV Multi-Monitor Desk (Puzzle #3)
-  const cctvDesk = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.76, 0.92), matDarkMetal);
-  cctvDesk.position.set(A.cctv_desk.x, 0.38, A.cctv_desk.z);
-  root.add(cctvDesk);
+  // CCTV Multi-Monitor Desk (detailed wood top, steel legs, 3-drawer pedestal, keyboard, cables & swivel chair)
+  const cctvDeskGroup = new THREE.Group();
+  cctvDeskGroup.position.set(A.cctv_desk.x, 0, A.cctv_desk.z);
+  const cdTop = new THREE.Mesh(new THREE.BoxGeometry(2.64, 0.07, 0.94), matDeskWood);
+  cdTop.position.y = 0.74;
+  // Steel leg frame on left + 3-drawer steel cabinet pedestal on right
+  [
+    [-1.22, -0.38],
+    [-1.22, 0.38],
+  ].forEach(([lx, lz]) => {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.72, 0.07), matDeskSteel);
+    leg.position.set(lx, 0.36, lz);
+    cctvDeskGroup.add(leg);
+  });
+  const cdCrossBar = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.05, 0.05), matDeskSteel);
+  cdCrossBar.position.set(-0.35, 0.22, 0.36);
+  const cdPedestal = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.7, 0.84), matDeskSteel);
+  cdPedestal.position.set(0.92, 0.35, 0);
+  // 3 visible drawer fronts + chrome pulls facing the room (-Z)
+  [0.14, 0.35, 0.56].forEach((dy) => {
+    const dFace = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.17, 0.04), matDrawerFace);
+    dFace.position.set(0.92, dy, -0.43);
+    const dPull = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 0.04), matChrome);
+    dPull.position.set(0.92, dy, -0.46);
+    cctvDeskGroup.add(dFace, dPull);
+  });
+  // Backlit mechanical keyboard, mouse, monitor stand, cable bundle & cyan under-edge accent
+  const keyboard = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.025, 0.16), matDeskSteel);
+  keyboard.position.set(0.0, 0.79, -0.18);
+  const kbGlow = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.008, 0.12), matNeonCyan);
+  kbGlow.position.set(0.0, 0.805, -0.18);
+  const mouse = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.024, 0.11), matDeskSteel);
+  mouse.position.set(0.36, 0.79, -0.18);
+  const monStand = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.34, 10), matChrome);
+  monStand.position.set(0, 0.94, 0.14);
+  const cable1 = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.72, 6), matDarkMetal);
+  cable1.position.set(-0.18, 0.38, 0.28);
+  cable1.rotation.z = 0.18;
+  const cdEdgeStrip = new THREE.Mesh(new THREE.BoxGeometry(2.58, 0.02, 0.02), matNeonCyan);
+  cdEdgeStrip.position.set(0, 0.71, -0.47);
+  cctvDeskGroup.add(cdTop, cdCrossBar, cdPedestal, keyboard, kbGlow, mouse, monStand, cable1, cdEdgeStrip);
+  root.add(cctvDeskGroup);
   addBoxCollider('collider_cctv_desk', A.cctv_desk.x, A.cctv_desk.z, 2.65, 0.96, 0.85);
 
   const cctvGroup = new THREE.Group();
   cctvGroup.position.set(A.cctv_desk.x, 1.25, A.cctv_desk.z + 0.12);
-  const mainMon = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.82, 0.07), matDarkMetal);
+  const mainMon = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.82, 0.07), matDeskSteel);
   const mainScr = new THREE.Mesh(
     new THREE.PlaneGeometry(1.36, 0.74),
     new THREE.MeshBasicMaterial({ map: dynamicCCTV.texture })
@@ -887,7 +1219,7 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   const spareMon = new THREE.Group();
   spareMon.position.set(A.cctv_desk.x - 0.98, 1.02, A.cctv_desk.z + 0.05);
   spareMon.rotation.y = 0.35;
-  const smBox = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.4, 0.06), matDarkMetal);
+  const smBox = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.4, 0.06), matDeskSteel);
   const smGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.34), matNeonCyan);
   smGlow.position.z = -0.035;
   smGlow.rotation.y = Math.PI;
@@ -897,7 +1229,7 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
 
   // Heist Cash Stacks on CCTV Desk (High-value Chaos prop!)
   const cashGroup = new THREE.Group();
-  cashGroup.position.set(A.cctv_desk.x + 0.98, 0.76, A.cctv_desk.z - 0.12);
+  cashGroup.position.set(A.cctv_desk.x + 0.98, 0.78, A.cctv_desk.z - 0.12);
   const cashMat = new THREE.MeshStandardMaterial({ map: textures.getCashTexture(), roughness: 0.65 });
   for (let i = 0; i < 4; i++) {
     const bill = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.12), cashMat);
@@ -908,20 +1240,67 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
   root.add(cashGroup);
   registerChaosProp('cash_stack', cashGroup, 'Stacks of Vice City Cash', 'security_room', 12000);
 
-  // Analog Radio Transceiver Desk (Puzzle #4)
-  const radioDesk = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.76, 1.85), matDarkMetal);
-  radioDesk.position.set(A.radio_desk.x, 0.38, A.radio_desk.z);
-  root.add(radioDesk);
+  // Analog Radio Transceiver Desk (wood tabletop, brushed-steel frame, drawer pedestal, brass desk lamp & cables)
+  const radioDeskGroup = new THREE.Group();
+  radioDeskGroup.position.set(A.radio_desk.x, 0, A.radio_desk.z);
+  const rdTop = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.07, 1.88), matDeskWood);
+  rdTop.position.y = 0.74;
+  [
+    [-0.36, -0.84],
+    [0.36, -0.84],
+  ].forEach(([lx, lz]) => {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.72, 0.065), matDeskSteel);
+    leg.position.set(lx, 0.36, lz);
+    radioDeskGroup.add(leg);
+  });
+  const rdPedestal = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.7, 0.62), matDeskSteel);
+  rdPedestal.position.set(0, 0.35, 0.56);
+  [0.2, 0.48].forEach((dy) => {
+    const dFace = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.54), matDrawerFace);
+    dFace.position.set(-0.4, dy, 0.56);
+    const dPull = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.025, 0.2), matChrome);
+    dPull.position.set(-0.43, dy, 0.56);
+    radioDeskGroup.add(dFace, dPull);
+  });
+  // Warm articulated brass/amber task lamp on the Radio Desk
+  const rLampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.04, 14), matGold);
+  rLampBase.position.set(0.05, 0.79, -0.62);
+  const rLampStem = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.44, 8), matGold);
+  rLampStem.position.set(0.05, 1.01, -0.62);
+  rLampStem.rotation.z = 0.16;
+  const rLampShade = new THREE.Mesh(
+    new THREE.ConeGeometry(0.14, 0.16, 14),
+    new THREE.MeshStandardMaterial({
+      color: 0xffcf66,
+      emissive: 0xffa726,
+      emissiveIntensity: 1.25,
+      roughness: 0.35,
+    })
+  );
+  rLampShade.position.set(-0.04, 1.18, -0.62);
+  rLampShade.rotation.z = 0.45;
+  // Coiled radio cable hanging behind desk
+  const rCable = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.014, 6, 14), matDarkMetal);
+  rCable.position.set(-0.28, 0.62, 0.12);
+  radioDeskGroup.add(rdTop, rdPedestal, rLampBase, rLampStem, rLampShade, rCable);
+  root.add(radioDeskGroup);
   addBoxCollider('collider_radio_desk', A.radio_desk.x, A.radio_desk.z, 0.9, 1.9, 0.85);
 
   const radioGroup = new THREE.Group();
   radioGroup.position.set(A.radio_desk.x, 0.96, A.radio_desk.z);
-  const radioBody = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.36, 0.74), matDarkMetal);
+  const radioBody = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.36, 0.74), matDeskSteel);
   const radioDial = new THREE.Mesh(
     new THREE.BoxGeometry(0.04, 0.14, 0.48),
     new THREE.MeshBasicMaterial({ color: 0xffaa2b })
   );
   radioDial.position.set(-0.21, 0.04, 0);
+  // Tactile chrome tuning knobs
+  [-0.24, 0.24].forEach((kz) => {
+    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.04, 12), matChrome);
+    knob.rotation.z = Math.PI / 2;
+    knob.position.set(-0.23, -0.09, kz);
+    radioGroup.add(knob);
+  });
   const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.95, 6), matChrome);
   antenna.position.set(0.1, 0.62, -0.25);
   radioGroup.add(radioBody, radioDial, antenna);
@@ -934,24 +1313,32 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
     room: 'security_room',
   });
 
-  // Combination Wall Safe (Puzzle #5)
+  // Combination Wall Safe — mounted prominently on the South wall facing the Security Room entrance (x: 4.15, z: 9.2)
   const safeGroup = new THREE.Group();
-  safeGroup.position.set(A.wall_safe.x, A.wall_safe.y, A.wall_safe.z);
-  const safeBody = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.74, 0.68), matDarkMetal);
-  safeGroup.add(safeBody);
+  safeGroup.position.set(4.15, 1.42, 9.2);
+  safeGroup.rotation.y = Math.PI / 2; // Door faces North (-Z) directly toward the doorway
+  const safeFrame = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.86, 0.82), matDeskSteel);
+  safeGroup.add(safeFrame);
 
   // Glowing golden Master Exit Key visible inside when door swings open
-  safeKeyMesh = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.02, 8, 14), matGold);
+  safeKeyMesh = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.022, 8, 14), matGold);
   safeKeyMesh.position.set(0.06, 0, 0);
   safeGroup.add(safeKeyMesh);
 
   safeDoorPivot = new THREE.Group();
-  safeDoorPivot.position.set(0.21, 0, -0.32);
-  const safeDoorLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.68, 0.64), matChrome);
-  safeDoorLeaf.position.set(0, 0, 0.32);
+  safeDoorPivot.position.set(0.24, 0, -0.36);
+  const safeDoorLeaf = new THREE.Mesh(
+    new THREE.BoxGeometry(0.07, 0.76, 0.72),
+    new THREE.MeshStandardMaterial({ color: 0xb8c4d9, roughness: 0.22, metalness: 0.88 })
+  );
+  safeDoorLeaf.position.set(0, 0, 0.36);
+  // Heavy vault wheel + glowing digital keypad
+  const safeWheel = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.022, 8, 16), matChrome);
+  safeWheel.rotation.y = Math.PI / 2;
+  safeWheel.position.set(0.06, -0.05, 0.22);
   const safePad = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.24, 0.18), matNeonPink);
-  safePad.position.set(0.02, 0.05, 0.44);
-  safeDoorPivot.add(safeDoorLeaf, safePad);
+  safePad.position.set(0.03, 0.08, 0.52);
+  safeDoorPivot.add(safeDoorLeaf, safeWheel, safePad);
   safeGroup.add(safeDoorPivot);
   root.add(safeGroup);
   registerInteractable(safeGroup, {
@@ -962,14 +1349,30 @@ export function buildFurnitureAndProps(scene, layout, textures, dynamicTV, dynam
     room: 'security_room',
   });
 
-  // Heist Corkboard (Clue)
+  // Heist Corkboard (Clue) — mounted prominently on the East wall facing the doorway with warm gallery light bar
+  const boardGroup = new THREE.Group();
+  boardGroup.position.set(9.84, 1.88, 7.25);
+  boardGroup.rotation.y = -Math.PI / 2;
+  const boardFrame = new THREE.Mesh(new THREE.BoxGeometry(1.94, 1.24, 0.08), matDeskWood);
   const boardMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1.75, 1.1, 0.07),
-    new THREE.MeshStandardMaterial({ map: textures.getHeistBoardTexture(), roughness: 0.8 })
+    new THREE.PlaneGeometry(1.84, 1.14),
+    new THREE.MeshStandardMaterial({
+      map: textures.getHeistBoardTexture(),
+      emissiveMap: textures.getHeistBoardTexture(),
+      emissive: new THREE.Color(0x5a4638),
+      emissiveIntensity: 0.35,
+      roughness: 0.75,
+    })
   );
-  boardMesh.position.set(A.heist_board.x, A.heist_board.y, A.heist_board.z);
-  root.add(boardMesh);
-  registerInteractable(boardMesh, {
+  boardMesh.position.z = 0.045;
+  const boardLightBar = new THREE.Mesh(
+    new THREE.BoxGeometry(1.3, 0.04, 0.12),
+    new THREE.MeshBasicMaterial({ color: 0xffe8c2 })
+  );
+  boardLightBar.position.set(0, 0.68, 0.12);
+  boardGroup.add(boardFrame, boardMesh, boardLightBar);
+  root.add(boardGroup);
+  registerInteractable(boardGroup, {
     id: 'heist_board',
     label: "Lucia's Heist Corkboard",
     actionLabel: 'Inspect',

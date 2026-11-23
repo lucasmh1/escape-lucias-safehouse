@@ -202,47 +202,64 @@ export class TextureFactory {
   }
 
   /**
-   * Ref #1 & #3: Neon skyscraper lit window grid texture.
+   * Ref #1 & #3: High-resolution neon skyscraper lit window strips texture.
    */
   getSkyscraperFacade(variant = 'magenta') {
     return this._cached(`skyscraper_${variant}`, () => {
-      const { canvas, ctx } = this._makeCanvas(256, 512);
-      ctx.fillStyle = '#090914';
-      ctx.fillRect(0, 0, 256, 512);
+      const { canvas, ctx } = this._makeCanvas(512, 1024);
+      ctx.fillStyle = '#070712';
+      ctx.fillRect(0, 0, 512, 1024);
 
       const palette =
         variant === 'cyan'
-          ? ['#00f0ff', '#58d8ff', '#a8f0ff', '#ffe299', '#1e3a5f']
+          ? ['#00f0ff', '#6ae6ff', '#d6faff', '#ffe7a8', '#1f4466']
           : variant === 'mixed'
-            ? ['#ff2d95', '#00f0ff', '#ffb84d', '#b86bff', '#262044']
-            : ['#ff2d95', '#ff66b8', '#ff9e64', '#c56bff', '#38193d'];
+            ? ['#ff3399', '#00f0ff', '#ffbe6b', '#c985ff', '#252145']
+            : ['#ff2d95', '#ff75bc', '#ffae70', '#d07aff', '#3a1a42'];
 
-      const cols = 12;
-      const rows = 36;
-      const cellW = 256 / cols;
-      const cellH = 512 / rows;
+      const cols = 28;
+      const rows = 88;
+      const cellW = 512 / cols;
+      const cellH = 1024 / rows;
 
-      for (let r = 1; r < rows - 1; r++) {
-        const floorActive = ((r * 13 + (variant === 'cyan' ? 5 : 2)) % 5) !== 0;
+      // Subtle vertical structural glass mullions
+      ctx.fillStyle = '#0d0e1f';
+      for (let c = 0; c < cols; c += 4) {
+        ctx.fillRect(c * cellW, 0, 3, 1024);
+      }
+
+      for (let r = 2; r < rows - 1; r++) {
+        const isMechanicalFloor = r % 16 === 0;
+        if (isMechanicalFloor) {
+          ctx.fillStyle = '#0c0d1c';
+          ctx.fillRect(0, r * cellH, 512, cellH);
+          continue;
+        }
+        const floorDensity = ((r * 19 + variant.length * 7) % 100);
         for (let c = 1; c < cols - 1; c++) {
-          const hash = (r * 37 + c * 91 + variant.length * 17) % 100;
-          if (floorActive && hash < 54) {
+          const hash = (r * 41 + c * 97 + variant.length * 23) % 100;
+          const litChance = floorDensity < 35 ? 62 : 28;
+          if (hash < litChance) {
             const color = palette[hash % palette.length];
             ctx.fillStyle = color;
-            ctx.globalAlpha = 0.45 + (hash % 5) * 0.11;
-            ctx.fillRect(c * cellW + 3, r * cellH + 3, cellW - 6, cellH - 6);
+            ctx.globalAlpha = 0.42 + (hash % 5) * 0.13;
+            ctx.fillRect(c * cellW + 2, r * cellH + 3, cellW - 4, cellH - 5);
           } else {
-            ctx.fillStyle = '#141528';
-            ctx.globalAlpha = 0.7;
-            ctx.fillRect(c * cellW + 3, r * cellH + 3, cellW - 6, cellH - 6);
+            ctx.fillStyle = '#121326';
+            ctx.globalAlpha = 0.55;
+            ctx.fillRect(c * cellW + 2, r * cellH + 3, cellW - 4, cellH - 5);
           }
         }
       }
       ctx.globalAlpha = 1;
 
-      // Glowing rooftop trim band
+      // Crisp glowing rooftop neon trim band
       ctx.fillStyle = variant === 'cyan' ? '#00f5ff' : '#ff2a85';
-      ctx.fillRect(0, 0, 256, 12);
+      ctx.fillRect(0, 0, 512, 10);
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.65;
+      ctx.fillRect(0, 2, 512, 4);
+      ctx.globalAlpha = 1;
 
       return this._toTexture(canvas, { repeatX: 1, repeatY: 1 });
     });

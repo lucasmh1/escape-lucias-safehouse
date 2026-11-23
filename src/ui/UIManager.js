@@ -37,6 +37,7 @@ export class UIManager {
     this._unsubs = [];
     this._layers = {};
     this._subtitleTimer = null;
+    this._subtitleRemaining = 0;
     this._hoveredInteractable = null;
     this._currentRoomName = 'Living Room';
     this._inventoryOpen = false;
@@ -118,6 +119,7 @@ export class UIManager {
     });
 
     on('modal:open', (payload = {}) => {
+      this.hideSubtitle();
       const modalId = payload.modalId || '';
       if (modalId === 'voicemail' || payload.clueId === 'voicemail_dock') {
         this._closeOverlays();
@@ -189,6 +191,7 @@ export class UIManager {
     on('puzzle:solved', () => this._refreshHUD());
     on('state:loaded', () => this._refreshHUD());
     on('state:reset', () => {
+      this.hideSubtitle();
       this._hoveredInteractable = null;
       this._currentRoomName = 'Living Room';
       this._refreshHUD();
@@ -389,10 +392,16 @@ export class UIManager {
     prompt.innerHTML = html;
   }
 
-  update(_dt) {
+  update(dt = 0) {
     const timerEl = this._layers.hud?.querySelector('[data-hud="timer"]');
     if (timerEl && !this._layers.hud.classList.contains('hidden')) {
       timerEl.textContent = formatTime(this.gameState.data.elapsedTime);
+    }
+    if (this._subtitleRemaining > 0 && dt > 0) {
+      this._subtitleRemaining -= dt;
+      if (this._subtitleRemaining <= 0) {
+        this.hideSubtitle();
+      }
     }
   }
 
@@ -781,14 +790,24 @@ export class UIManager {
     const txtEl = this._layers.hud?.querySelector('[data-hud="sub-text"]');
     if (!box || !spEl || !txtEl) return;
 
+    const clampedMs = Math.min(Math.max(Number(duration) || 4500, 1500), 5000);
     spEl.textContent = speaker;
     txtEl.textContent = text;
     box.classList.remove('hidden');
 
+    this._subtitleRemaining = clampedMs / 1000;
     clearTimeout(this._subtitleTimer);
     this._subtitleTimer = setTimeout(() => {
-      box.classList.add('hidden');
-    }, duration);
+      this.hideSubtitle();
+    }, clampedMs);
+  }
+
+  hideSubtitle() {
+    this._subtitleRemaining = 0;
+    clearTimeout(this._subtitleTimer);
+    this._subtitleTimer = null;
+    const box = this._layers.hud?.querySelector('[data-hud="subtitle"]');
+    if (box) box.classList.add('hidden');
   }
 
   showToast(text, type = 'info', duration = 3800) {
