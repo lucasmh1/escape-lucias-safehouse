@@ -1,0 +1,17 @@
+{
+  "name": "escape-lucias-safehouse",
+  "version": "1.0.0",
+  "description": "ESCAPE LUCIA'S SAFEHOUSE — Cinematic Vice City Neo-Noir 3D Browser Escape Room",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173 --open",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
